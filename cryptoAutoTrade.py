@@ -69,10 +69,12 @@ if __name__ == '__main__':
         K = 0.5
         
         start_balance = upbit.get_balance("KRW")
-        df = pyupbit.get_ohlcv(coin, count = 2, interval = "day")
-        targetPrice = get_targetPrice(df, get_best_K(coin, fees))
+        df = pyupbit.get_ohlcv(coin, count = 2, interval = "day")        
+        best_k = get_best_K(coin, fees)
+        targetPrice = get_targetPrice(df, best_k)
+        currentPrice = pyupbit.get_current_price(coin)
         print(datetime.datetime.now().strftime('%y/%m/%d %H:%M:%S'), "\t\tBalance :", start_balance, "KRW \t\tYield :", ((start_balance / start_balance) - 1) * 100, "% \t\tNew targetPrice :", targetPrice, "KRW")
-        dbgout("자동매매를 시작합니다.\n잔액 : "+str(start_balance)+" 원\n목표매수가 : "+str(targetPrice)+" 원")
+        dbgout("자동매매를 시작합니다.\n잔액 : "+str(start_balance)+" 원\n현재가 : "+str(currentPrice)+" 원\n목표매수가 : "+str(targetPrice)+" 원\nbest_K : " + str(best_k))
 
         while True :
             now = datetime.datetime.now()
@@ -81,11 +83,13 @@ if __name__ == '__main__':
                 time.sleep(10)
 
                 df = pyupbit.get_ohlcv(coin, count = 2, interval = "day")
-                targetPrice = get_targetPrice(df, get_best_K(coin, fees))
+                best_k = get_best_K(coin, fees)
+                targetPrice = get_targetPrice(df, best_k)
+                currentPrice = pyupbit.get_current_price(coin)
 
                 cur_balance = upbit.get_balance("KRW")
                 print(now.strftime('%y/%m/%d %H:%M:%S'), "\t\tBalance :", cur_balance, "KRW \t\tYield :", ((cur_balance / start_balance) - 1) * 100, "% \t\tNew targetPrice :", targetPrice, "KRW")
-                dbgout("새로운 장 시작\n수익률 : "+str(((cur_balance / start_balance) - 1) * 100)+" %\n잔액 : "+str(cur_balance)+" 원\n목표매수가 : "+str(targetPrice)+" 원")
+                dbgout("새로운 장 시작\n수익률 : "+str(((cur_balance / start_balance) - 1) * 100)+" %\n잔액 : "+str(start_balance)+" 원\n현재가 : "+str(currentPrice)+" 원\n목표매수가 : "+str(targetPrice)+" 원\nbest_K : " + str(best_k))
                 time.sleep(60)
 
             elif targetPrice <= pyupbit.get_current_price(coin) :
