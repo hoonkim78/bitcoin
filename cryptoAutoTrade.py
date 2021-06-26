@@ -5,9 +5,9 @@ import time, calendar
 import numpy as np
 import requests
 
-myToken = "xoxb-2213257365844-2194586687239-1jltbYSDJCUOpSaMSkeYTmYW"
-access = "gEq6BEhaQioReV9HtgJ1Gx8nGN8CGL3Xp76Yd879"          # 본인 값으로 변경
-secret = "T1Bp2HOMzA7nl9KFsHeSxjeTg21TNzjsuaxjpwL7"          # 본인 값으로 변경
+myToken = ""
+access = ""          # 본인 값으로 변경
+secret = ""          # 본인 값으로 변경
 
 def dbgout(message):
     # """인자로 받은 문자열을 파이썬 셸과 슬랙으로 동시에 출력한다."""
