@@ -7,8 +7,8 @@ import requests
 import schedule
 
 myToken = ""
-access = ""
-secret = ""
+access = "gEq6BEhaQioReV9HtgJ1Gx8nGN8CGL3Xp76Yd879"
+secret = "T1Bp2HOMzA7nl9KFsHeSxjeTg21TNzjsuaxjpwL7"
 
 
 def dbgout(message):
