@@ -4,10 +4,11 @@ import datetime
 import time, calendar
 import numpy as np
 import requests
+import schedule
 
 myToken = ""
-access = ""          # 본인 값으로 변경
-secret = ""          # 본인 값으로 변경
+access = ""
+secret = ""
 
 
 def dbgout(message):
