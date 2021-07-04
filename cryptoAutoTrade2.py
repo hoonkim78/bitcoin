@@ -6,7 +6,7 @@ import numpy as np
 import requests
 import schedule
 
-myToken = "xoxb-2213257365844-2214241530226-2sPoNIBBs9Q42tAZVgAimRxx"
+myToken = ""
 access = "gEq6BEhaQioReV9HtgJ1Gx8nGN8CGL3Xp76Yd879"          
 secret = "T1Bp2HOMzA7nl9KFsHeSxjeTg21TNzjsuaxjpwL7"          
 
