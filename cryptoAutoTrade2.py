@@ -10,6 +10,7 @@ myToken = ""
 access = "gEq6BEhaQioReV9HtgJ1Gx8nGN8CGL3Xp76Yd879"          
 secret = "T1Bp2HOMzA7nl9KFsHeSxjeTg21TNzjsuaxjpwL7"          
 
+
 def dbgout(message):
     # """인자로 받은 문자열을 파이썬 셸과 슬랙으로 동시에 출력한다."""
     print(datetime.datetime.now().strftime('[%m/%d %H:%M:%S]'), message)
@@ -44,7 +45,7 @@ def buy_all(coin) :
     balance = upbit.get_balance("KRW") * 0.9995
     if balance >= 5000 :
         upbit.buy_market_order(coin, balance) # 시장가 매수
-        dbgout("매수 체결.\n원화 잔고 : "+str(balance)+" 원\n체결 단가 : "+str(pyupbit.get_current_price(coin))+" 원\nma5 : "+str(get_ma5_minute240(coin))+" 원\nma10 : "+str(get_ma10_minute240(coin))+" 원")
+        dbgout("매수 체결.\n원화잔고 : "+str(balance)+" 원\n체결 단가 : "+str(pyupbit.get_current_price(coin))+" 원\nma5 : "+str(get_ma5_minute240(coin))+" 원\nma10 : "+str(get_ma10_minute240(coin))+" 원")
 
 def sell_all(coin) :
     print(get_ma5_minute240(coin),get_ma10_minute240(coin))
@@ -52,7 +53,19 @@ def sell_all(coin) :
     price = pyupbit.get_current_price(coin)
     if price * balance >= 5000 :
         upbit.sell_market_order(coin, balance) # 시장가 매도
-        dbgout("매도 체결.\n원화 잔고 : "+str(price * balance)+" 원\n체결 단가 : "+str(pyupbit.get_current_price(coin))+" 원\nma5 : "+str(get_ma5_minute240(coin))+" 원\nma10 : "+str(get_ma10_minute240(coin))+" 원")
+        dbgout("매도 체결.\n원화잔고 : "+str(price * balance)+" 원\n체결 단가 : "+str(pyupbit.get_current_price(coin))+" 원\nma5 : "+str(get_ma5_minute240(coin))+" 원\nma10 : "+str(get_ma10_minute240(coin))+" 원")
+
+def send_alarm():
+    try:
+        coin = "KRW-BTC"
+        balance = upbit.get_balance(coin)
+        price = pyupbit.get_current_price(coin)
+        dbgout(".\n원화잔고 : "+str(price * balance)+" 원\n현재가 : "+str(price)+" 원\nma5 : "+str(get_ma5_minute240(coin))+" 원\nma10 : "+str(get_ma10_minute240(coin))+" 원")
+
+    except Exception as ex:
+        dbgout("send_alarm() -> exception! " + str(ex))
+
+schedule.every(60).minutes.do(send_alarm) #60분마다 실행
 
 if __name__ == '__main__': 
     try:
@@ -60,20 +73,18 @@ if __name__ == '__main__':
 
         # set variables
         coin = "KRW-BTC"
-        fees = 0.0005
-        K = 0.5
         
         ma5 = get_ma5_minute240(coin)
         ma10 = get_ma10_minute240(coin)
 
-        while True :            
-            now = datetime.datetime.now()
+        while True :         
             
             if ma5 > ma10:
                 buy_all(coin)
             else:
                 sell_all(coin)
 
+            schedule.run_pending()
             time.sleep(1)
 
     except Exception as ex:
