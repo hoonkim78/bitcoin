@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 sell_all(coin)
 
             schedule.run_pending()
-            time.sleep(1)
+            time.sleep(10)
             
             
     except Exception as ex:
