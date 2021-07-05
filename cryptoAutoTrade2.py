@@ -73,12 +73,11 @@ if __name__ == '__main__':
 
         # set variables
         coin = "KRW-BTC"
-        
-        ma5 = get_ma5_minute240(coin)
-        ma10 = get_ma10_minute240(coin)
 
         while True :         
-            
+            ma5 = get_ma5_minute240(coin)
+            ma10 = get_ma10_minute240(coin)
+
             if ma5 > ma10:
                 buy_all(coin)
             else:
@@ -86,7 +85,8 @@ if __name__ == '__main__':
 
             schedule.run_pending()
             time.sleep(1)
-
+            
+            
     except Exception as ex:
         dbgout("main() -> exception! " + str(ex))
         time.sleep(1)
