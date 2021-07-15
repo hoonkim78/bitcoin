@@ -107,13 +107,6 @@ while True:
 
     #현재 MACD, Signal 값 출력        
     print(print_date_string, '[Trace]', 'current_data -> ', 'MACD:',macd[0], ' Signal: ', signal[0])
-    print(print_date_string, '[Trace]', 'before_data -1 -> ', 'MACD:',macd[1], ' Signal: ', signal[1])
-    print(print_date_string, '[Trace]', 'before_data -2 -> ', 'MACD:',macd[2], ' Signal: ', signal[2])
-    print(print_date_string, '[Trace]', 'before_data -3 -> ', 'MACD:',macd[3], ' Signal: ', signal[3])
-    print(print_date_string, '[Trace]', 'before_data -4 -> ', 'MACD:',macd[4], ' Signal: ', signal[4])
-    print(print_date_string, '[Trace]', 'before_data -5 -> ', 'MACD:',macd[5], ' Signal: ', signal[5])
-    print(print_date_string, '[Trace]', 'before_data -6 -> ', 'MACD:',macd[6], ' Signal: ', signal[6])
-
 
     #현재 Signal - MACD
     current_data=signal[0]-macd[0]
@@ -163,14 +156,7 @@ while True:
 
     print(print_date_string, '[Trace]','AutoTradeResult:', call)
     send_slackMsg(call)
-    #################################################### 
-    #엑셀로 결과 출력
-    ####################################################
-    now = datetime.datetime.now()
-    date_string = now.strftime('%Y%m%d%H%M%S')
-    print(date_string)
-    excel_name = date_string + "_AutoTradeRecord.xlsx"
-    df.to_excel(excel_name)
+
 
     #30분당 조회
     time.sleep(1800)
