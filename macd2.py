@@ -87,7 +87,6 @@ while True:
 
     #해당 데이터로 데이터프레임 생성
     df = pd.DataFrame(data)
-    print(df)
 
     #데이터 프레임 오름차순 정렬 7/10 ~ 7/14 순으로 오름차순
     df=df.iloc[::-1]
@@ -107,6 +106,7 @@ while True:
 
     #현재 MACD, Signal 값 출력        
     print(print_date_string, '[Trace]', 'current_data -> ', 'MACD:',macd[0], ' Signal: ', signal[0])
+    print(print_date_string, '[Trace]', 'before_data -> ', 'MACD:',macd[1], ' Signal: ', signal[1])
 
 
     #현재 Signal - MACD
@@ -125,7 +125,7 @@ while True:
 
     print(print_date_string, '[Trace]', 'current_data <-> before_data comparing...')    
 
-    if macd[0] > signal[0] and signal[1] > macd[1]:
+    if signal[0] > macd[0] and macd[1] > signal[1]:
         call='Sell'
         btc = get_balance("BTC")
         #시장가 매도
@@ -134,7 +134,7 @@ while True:
         send_slackMsg("BTC Sell : " +str(sell_result))
         
         
-    if  signal[0] > macd[0] and macd[1] > signal[1]:
+    if macd[0] > signal[0] and signal[1] > macd[1]:
         call='Buy'
         try:
             target_price = get_target_price("KRW-BTC")
