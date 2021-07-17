@@ -67,6 +67,13 @@ if __name__ == '__main__':
         upbit = pyupbit.Upbit(access, secret)
         print("autotrade start")
         start_slackMsg = send_slackMsg("autotrade start")
+        
+        # 매수상태 플래그 True:매수상태, False : 매수하기 전
+        bought_flag = False 
+
+        #매수 구매 가격
+        buy_price = {}
+        buy_price.update({ "KRW-BTC" : 0 }) 
 
         while True:
 
@@ -76,7 +83,7 @@ if __name__ == '__main__':
             print_date_string = now.strftime('%Y:%m:%d:%H:%M:%S')
             #print(date_string)
 
-            #업비트 60분봉 URL 호출
+            #업비트 30분봉 URL 호출
             url = "https://api.upbit.com/v1/candles/minutes/60" 
 
             #원화시장 BTC 캔들갯수 MAX:200 / 카운트:100
@@ -123,16 +130,32 @@ if __name__ == '__main__':
 
             call='Not Buy & Not Sell'
 
-            if signal[0] > macd[0] and macd[1] > signal[1]:
+            if signal[0] > macd[0] and macd[1] > signal[1] and \
+                bought_flag == True and buy_price["KRW-BTC"] > 0: # 매수상태이면
+
                 call='Sell'
                 btc = get_balance("BTC")
                 #시장가 매도
                 sell_result = ''
                 #sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
-                send_slackMsg("BTC Sell : " +str(sell_result))
+                # 매도 체결여부 확인
+                uncomp = upbit.get_order("KRW-BTC") # 미체결된 리스트 조회
+                if len(uncomp) == 0: # 길이가 0이라면, 모든 주문이 체결됐다면                    
+                    d = int(buy_price["KRW-BTC"]) # 매수가
+                    e = int(get_current_price("KRW-BTC")) # 현재가
+                    f = ((( e / d ) - 1 ) * 100 )
+                    print("수익률 :" , "%.2f" % (f) , "%")
+
+                    bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다.                    
+                    buy_price.update({ "KRW-BTC" : 0 }) # 매수가 초기화
+
+                    send_slackMsg("BTC Sell : " + str(sell_result))                    
+                    send_slackMsg("수익률 :" + "%.2f" % (f) + "%") 
                 
                 
-            if macd[0] > signal[0] and signal[1] > macd[1]:
+            if macd[0] > signal[0] and signal[1] > macd[1] and \
+                bought_flag == False and buy_price["KRW-BTC"] == 0:
+
                 call='Buy'
                 try:
                     target_price = get_target_price("KRW-BTC")
@@ -144,15 +167,15 @@ if __name__ == '__main__':
                         if krw > 5000:
                             #시장가 매수
                             buy_result = ''
-                            #buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)
-                            send_slackMsg("BTC Buy : " +str(buy_result))
-                            call=call + ': current_price: ' + current_price + ' target_price: ' + target_price + ' balance: ' + krw
+                            #buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)         
+                            buy_price.update({ "KRW-BTC" : int(current_price) })
+                            send_slackMsg("BTC Buy : " +str(buy_result))                   
                             
-                        call='be short of balance'
+                            bought_flag = True # True:매수상태, 
+                            
                 except Exception as e:
                     print(e)
-                    send_slackMsg(e)
-                    
+                    send_slackMsg(e)                    
 
 
             print(print_date_string, '[Trace]','AutoTradeResult:', call)
