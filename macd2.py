@@ -136,9 +136,8 @@ if __name__ == '__main__':
 
                 call='Sell'
                 btc = get_balance("BTC")
-                #시장가 매도p
-                sell_result = ''
-                #sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
+                #시장가 매도
+                sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
                 # 매도 체결여부 확인
                 uncomp = upbit.get_order("KRW-BTC") # 미체결된 리스트 조회
                 if len(uncomp) == 0: # 길이가 0이라면, 모든 주문이 체결됐다면                    
@@ -158,16 +157,15 @@ if __name__ == '__main__':
 
                 call='Buy'
                 try:
-                    target_price = get_target_price("KRW-BTC")
-                    current_price = get_current_price("KRW-BTC")
+                    target_price = get_target_price("KRW-BTC") # 1시간봉 종가 -> 1시간 평균가
+                    current_price = get_current_price("KRW-BTC") # 현재가
                     if current_price > target_price:
                         krw = get_balance("KRW")
                         #현재 잔고의 5% 금액으로 매매 진행
                         krw = krw * 0.1
                         if krw > 5000:
                             #시장가 매수
-                            buy_result = ''
-                            #buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)         
+                            buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)         
                             buy_price.update({ "KRW-BTC" : int(current_price) })
                             send_slackMsg("BTC Buy : " +str(buy_result))                   
                             
