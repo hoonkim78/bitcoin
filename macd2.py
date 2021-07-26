@@ -20,7 +20,9 @@ import datetime
 # 매수 목표가 조회 (1시간봉 종가배팅)
 def get_target_price(ticker):
     df = pyupbit.get_ohlcv(ticker, interval="minute60", count=1)
-    target_price = df.iloc[::-1]['close'] 
+    print(df)
+    #target_price = df.iloc[::-1]['close'] 
+    target_price = df['close'][-1]
     return target_price
 
 # 잔고 조회
@@ -57,7 +59,7 @@ def send_slackMsg(msg=""):
 
 # access, secret 값 선언
 access = "gEq6BEhaQioReV9HtgJ1Gx8nGN8CGL3Xp76Yd879"          
-secret = "T1Bp2HOMzA7nl9KFsHeSxjeTg21TNzjsuaxjpwL7"  
+secret = "T1Bp2HOMzA7nl9KFsHeSxjeTg21TNzjsuaxjpwL7"     
 slackToken = ""
 
 if __name__ == '__main__': 
@@ -87,7 +89,7 @@ if __name__ == '__main__':
             url = "https://api.upbit.com/v1/candles/minutes/60" 
 
             #원화시장 BTC 캔들갯수 MAX:200 / 카운트:100
-            querystring = {"market":"KRW-BTC","count":"100"}
+            querystring = {"market":"KRW-BTC","count":"200"}
                 
             #업비트 원화시장 BTC 60분봉 100개 조회 결과 저장
             response = requests.request("GET", url, params=querystring)
@@ -130,12 +132,11 @@ if __name__ == '__main__':
 
             call='Not Buy & Not Sell'
 
-            if signal[0] > macd[0] and macd[1] > signal[1] and \
-                bought_flag == True and buy_price["KRW-BTC"] > 0: # 매수상태이면
+            if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
 
                 call='Sell'
                 btc = get_balance("BTC")
-                #시장가 매도
+                #시장가 매도p
                 sell_result = ''
                 #sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
                 # 매도 체결여부 확인
@@ -153,8 +154,7 @@ if __name__ == '__main__':
                     send_slackMsg("수익률 :" + "%.2f" % (f) + "%") 
                 
                 
-            if macd[0] > signal[0] and signal[1] > macd[1] and \
-                bought_flag == False and buy_price["KRW-BTC"] == 0:
+            if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
 
                 call='Buy'
                 try:
