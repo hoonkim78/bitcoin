@@ -79,115 +79,96 @@ if __name__ == '__main__':
 
             #현재시간 구하기
             now = datetime.datetime.now()
-            excel_date_string = now.strftime('%Y%m%d%H%M%S')
-            print_date_string = now.strftime('%Y:%m:%d:%H:%M:%S')
-            #print(date_string)
+            # 59분마다 수행
+            if now.minute == 59 :
 
-            #업비트 30분봉 URL 호출
-            url = "https://api.upbit.com/v1/candles/minutes/60" 
+                excel_date_string = now.strftime('%Y%m%d%H%M%S')
+                print_date_string = now.strftime('%Y:%m:%d:%H:%M:%S')
 
-            #원화시장 BTC 캔들갯수 MAX:200 / 카운트:100
-            querystring = {"market":"KRW-BTC","count":"200"}
+                #업비트 30분봉 URL 호출
+                url = "https://api.upbit.com/v1/candles/minutes/60" 
+
+                #원화시장 BTC 캔들갯수 MAX:200 / 카운트:100
+                querystring = {"market":"KRW-BTC","count":"200"}
+                    
+                #업비트 원화시장 BTC 60분봉 100개 조회 결과 저장
+                response = requests.request("GET", url, params=querystring)
+                    
+                #해당 데이터 저장
+                data = response.json()
+
+                #해당 데이터로 데이터프레임 생성
+                df = pd.DataFrame(data)
                 
-            #업비트 원화시장 BTC 60분봉 100개 조회 결과 저장
-            response = requests.request("GET", url, params=querystring)
-                
-            #해당 데이터 저장
-            data = response.json()
 
-            #해당 데이터로 데이터프레임 생성
-            df = pd.DataFrame(data)
-            
+                #데이터 프레임 오름차순 정렬 7/10 ~ 7/14 순으로 오름차순
+                df=df.iloc[::-1]
 
-            #데이터 프레임 오름차순 정렬 7/10 ~ 7/14 순으로 오름차순
-            df=df.iloc[::-1]
+                #종가만 데이터 프레임 저장
+                df=df['trade_price']
 
-            #종가만 데이터 프레임 저장
-            df=df['trade_price']
+                #지수이동평균 구하기 span: 기간 
+                exp1 = df.ewm(span=12, adjust=False).mean()
+                exp2 = df.ewm(span=26, adjust=False).mean()
 
-            #지수이동평균 구하기 span: 기간 
-            exp1 = df.ewm(span=12, adjust=False).mean()
-            exp2 = df.ewm(span=26, adjust=False).mean()
-            # df['exp1'] = df['trade_price'].ewm(span=12, adjust=False).mean()
-            # df['exp2'] = df['trade_price'].ewm(span=26, adjust=False).mean()
+                #MACD 지표 계산 (단기지수이동평균 - 장기지수이동평균)
+                macd = exp1-exp2
 
-            #MACD 지표 계산 (단기지수이동평균 - 장기지수이동평균)
-            macd = exp1-exp2
-            # df['macd'] = df['exp1']-df['exp2']
+                #시그널 지표 계산 (MACD 9일 주가 이동평균치, ※ 1시간봉이기 때문에 현재 9시간 기준)
+                signal = macd.ewm(span=9, adjust=False).mean()
 
-            #시그널 지표 계산 (MACD 9일 주가 이동평균치, ※ 1시간봉이기 때문에 현재 9시간 기준)
-            signal = macd.ewm(span=9, adjust=False).mean()
-            # df['signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+                call='Not Buy & Not Sell'
 
-            #현재 MACD, Signal 값 출력        
-            # print(print_date_string, '[Trace]', 'current_data -> ', 'MACD:', macd[0], ' Signal: ', signal[0])
-            # print(print_date_string, '[Trace]', 'before_data -> ', 'MACD:', macd[1], ' Signal: ', signal[1])
-            
-            # now = datetime.datetime.now()
-            # date_string = now.strftime('%Y%m%d%H%M%S')
-            # excel_name = date_string + "_AutoTradeRecord.xlsx"
-            # df.to_excel(excel_name) 
+                if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
 
-            call='Not Buy & Not Sell'
+                    call='Sell'
+                    btc = get_balance("BTC")
+                    #시장가 매도
+                    sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
+                    # 매도 체결여부 확인
+                    uncomp = upbit.get_order("KRW-BTC") # 미체결된 리스트 조회
+                    if len(uncomp) == 0: # 길이가 0이라면, 모든 주문이 체결됐다면                    
+                        d = int(buy_price["KRW-BTC"]) # 매수가
+                        e = int(get_current_price("KRW-BTC")) # 현재가
+                        f = ((( e / d ) - 1 ) * 100 )
 
-            if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
+                        bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다.                    
+                        buy_price.update({ "KRW-BTC" : 0 }) # 매수가 초기화
 
-                call='Sell'
-                btc = get_balance("BTC")
-                #시장가 매도
-                sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
-                # 매도 체결여부 확인
-                uncomp = upbit.get_order("KRW-BTC") # 미체결된 리스트 조회
-                if len(uncomp) == 0: # 길이가 0이라면, 모든 주문이 체결됐다면                    
-                    d = int(buy_price["KRW-BTC"]) # 매수가
-                    e = int(get_current_price("KRW-BTC")) # 현재가
-                    f = ((( e / d ) - 1 ) * 100 )
-                    # print("수익률 :" , "%.2f" % (f) , "%")
+                        send_slackMsg("BTC Sell : " + str(sell_result))                    
+                        send_slackMsg("수익률 :" + "%.2f" % (f) + "%") 
+                    
+                    
+                if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
 
-                    bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다.                    
-                    buy_price.update({ "KRW-BTC" : 0 }) # 매수가 초기화
+                    call='Buy'
+                    try:
+                        target_price = get_target_price("KRW-BTC") # 1시간봉 종가 -> 1시간 평균가
+                        current_price = get_current_price("KRW-BTC") # 현재가
+                        if current_price > target_price:
+                            krw = get_balance("KRW")
+                            #현재 잔고의 5% 금액으로 매매 진행
+                            krw = krw * 0.1
+                            if krw > 5000:
+                                #시장가 매수
+                                buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)         
+                                buy_price.update({ "KRW-BTC" : int(current_price) })
+                                send_slackMsg("BTC Buy : " +str(buy_result))                   
+                                
+                                bought_flag = True # True:매수상태, 
+                                
+                    except Exception as e:
+                        send_slackMsg(e)      
 
-                    send_slackMsg("BTC Sell : " + str(sell_result))                    
-                    send_slackMsg("수익률 :" + "%.2f" % (f) + "%") 
-                
-                
-            if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
-
-                call='Buy'
-                try:
-                    target_price = get_target_price("KRW-BTC") # 1시간봉 종가 -> 1시간 평균가
-                    current_price = get_current_price("KRW-BTC") # 현재가
-                    if current_price > target_price:
-                        krw = get_balance("KRW")
-                        #현재 잔고의 5% 금액으로 매매 진행
-                        krw = krw * 0.1
-                        if krw > 5000:
-                            #시장가 매수
-                            buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)         
-                            buy_price.update({ "KRW-BTC" : int(current_price) })
-                            send_slackMsg("BTC Buy : " +str(buy_result))                   
-                            
-                            bought_flag = True # True:매수상태, 
-                            
-                except Exception as e:
-                    # print(e)
-                    send_slackMsg(e)                    
-
-
-            # print(print_date_string, '[Trace]','AutoTradeResult:', call)
-            send_slackMsg(call)
-
-            #30분당 조회
-            time.sleep(3600)
-            #################################################### 
-            #엑셀로 결과 출력
-            ####################################################
-            # now = datetime.datetime.now()
-            # date_string = now.strftime('%Y%m%d%H%M%S')
-            # print(date_string)
-            # excel_name = date_string + "_AutoTradeRecord.xlsx"
-            # df.to_excel(excel_name)    
-
+                send_slackMsg(call)
+                #################################################### 
+                #엑셀로 결과 출력
+                ####################################################
+                # now = datetime.datetime.now()
+                # date_string = now.strftime('%Y%m%d%H%M%S')
+                # print(date_string)
+                # excel_name = date_string + "_AutoTradeRecord.xlsx"
+                # df.to_excel(excel_name)    
+            time.sleep(10)    
     except Exception as ex:
-        # print(ex)
         time.sleep(1)
