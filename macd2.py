@@ -20,7 +20,6 @@ import datetime
 # 매수 목표가 조회 (1시간봉 종가배팅)
 def get_target_price(ticker):
     df = pyupbit.get_ohlcv(ticker, interval="minute60", count=1)
-    print(df)
     #target_price = df.iloc[::-1]['close'] 
     target_price = df['close'][-1]
     return target_price
@@ -67,7 +66,6 @@ if __name__ == '__main__':
     try:
         # 로그인
         upbit = pyupbit.Upbit(access, secret)
-        print("autotrade start")
         start_slackMsg = send_slackMsg("autotrade start")
         
         # 매수상태 플래그 True:매수상태, False : 매수하기 전
@@ -122,8 +120,8 @@ if __name__ == '__main__':
             # df['signal'] = df['macd'].ewm(span=9, adjust=False).mean()
 
             #현재 MACD, Signal 값 출력        
-            print(print_date_string, '[Trace]', 'current_data -> ', 'MACD:', macd[0], ' Signal: ', signal[0])
-            print(print_date_string, '[Trace]', 'before_data -> ', 'MACD:', macd[1], ' Signal: ', signal[1])
+            # print(print_date_string, '[Trace]', 'current_data -> ', 'MACD:', macd[0], ' Signal: ', signal[0])
+            # print(print_date_string, '[Trace]', 'before_data -> ', 'MACD:', macd[1], ' Signal: ', signal[1])
             
             # now = datetime.datetime.now()
             # date_string = now.strftime('%Y%m%d%H%M%S')
@@ -144,7 +142,7 @@ if __name__ == '__main__':
                     d = int(buy_price["KRW-BTC"]) # 매수가
                     e = int(get_current_price("KRW-BTC")) # 현재가
                     f = ((( e / d ) - 1 ) * 100 )
-                    print("수익률 :" , "%.2f" % (f) , "%")
+                    # print("수익률 :" , "%.2f" % (f) , "%")
 
                     bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다.                    
                     buy_price.update({ "KRW-BTC" : 0 }) # 매수가 초기화
@@ -172,12 +170,12 @@ if __name__ == '__main__':
                             bought_flag = True # True:매수상태, 
                             
                 except Exception as e:
-                    print(e)
+                    # print(e)
                     send_slackMsg(e)                    
 
 
-            print(print_date_string, '[Trace]','AutoTradeResult:', call)
-            #send_slackMsg(call)
+            # print(print_date_string, '[Trace]','AutoTradeResult:', call)
+            send_slackMsg(call)
 
             #30분당 조회
             time.sleep(3600)
@@ -191,5 +189,5 @@ if __name__ == '__main__':
             # df.to_excel(excel_name)    
 
     except Exception as ex:
-        print(ex)
+        # print(ex)
         time.sleep(1)
