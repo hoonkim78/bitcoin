@@ -39,6 +39,41 @@ def get_balance(ticker):
 def get_current_price(ticker):
     return pyupbit.get_orderbook(tickers=ticker)[0]["orderbook_units"][0]["ask_price"]
 
+def buy_all(ticker):
+    try:
+        target_price = get_target_price(ticker) # 1시간봉 종가 -> 1시간 평균가
+        current_price = get_current_price(ticker) # 현재가
+        if current_price > target_price:
+            krw = get_balance("KRW")
+            #현재 잔고의 5% 금액으로 매매 진행
+            krw = krw * 0.1
+            if krw > 5000:
+                #시장가 매수
+                buy_result = upbit.buy_market_order(ticker, krw*0.9995)         
+                buy_price.update({ ticker : int(current_price) })
+                send_slackMsg("BTC Buy : " +str(buy_result))  
+                
+    except Exception as e:
+        send_slackMsg(e)    
+
+def sell_all(ticker):  
+    try:
+        btc = get_balance("BTC")
+        #시장가 매도
+        sell_result = upbit.sell_market_order(ticker, btc*0.9995)
+        # 매도 체결여부 확인
+        uncomp = upbit.get_order(ticker) # 미체결된 리스트 조회
+        if len(uncomp) == 0: # 길이가 0이라면, 모든 주문이 체결됐다면                    
+            d = int(buy_price[ticker]) # 매수가
+            e = int(get_current_price(ticker)) # 현재가
+            f = ((( e / d ) - 1 ) * 100 )                    
+            buy_price.update({ ticker : 0 }) # 매수가 초기화
+
+            send_slackMsg("BTC Sell : " + str(sell_result))                    
+            send_slackMsg("수익률 :" + "%.2f" % (f) + "%")  
+                
+    except Exception as e:
+        send_slackMsg(e)    
 
 def send_slackMsg(msg=""):
         response = requests.post(
@@ -79,8 +114,9 @@ if __name__ == '__main__':
 
             #현재시간 구하기
             now = datetime.datetime.now()
-            # 59분마다 수행
-            if now.minute == 59 :
+            # 59분마다 수행하다보니 매수타이밍으로 변경된 시점보다 늦게 매수가되어
+            # 중간에 30분에도 한 번더 수행될 수 있도록 수정
+            if now.minute == 30 or now.minute == 59 :
 
                 excel_date_string = now.strftime('%Y%m%d%H%M%S')
                 print_date_string = now.strftime('%Y:%m:%d:%H:%M:%S')
@@ -98,8 +134,7 @@ if __name__ == '__main__':
                 data = response.json()
 
                 #해당 데이터로 데이터프레임 생성
-                df = pd.DataFrame(data)
-                
+                df = pd.DataFrame(data)                
 
                 #데이터 프레임 오름차순 정렬 7/10 ~ 7/14 순으로 오름차순
                 df=df.iloc[::-1]
@@ -117,48 +152,39 @@ if __name__ == '__main__':
                 #시그널 지표 계산 (MACD 9일 주가 이동평균치, ※ 1시간봉이기 때문에 현재 9시간 기준)
                 signal = macd.ewm(span=9, adjust=False).mean()
 
-                call='Not Buy & Not Sell'
+                call='Wait'
+
+                if bought_flag == True:  # 매수상태이고
+
+                    d = int(buy_price["KRW-BTC"]) # 매수가
+                    e = int(get_current_price("KRW-BTC")) # 현재가
+                    f = ((( e / d ) - 1 ) * 100 )
+                    
+                    # 1000원 1%이면 10원
+                    # 10,000원 1%이면 100원
+                    # 100,000원 1%이면 1000원
+                    # 1,000,000원 1%이면 10,000원
+                    # 10,000,000원 1%이면 100,000원
+
+                    if f <= -1 : # 수익률을 비교해서 -1%이면 무조건 매도
+                        call='Sell'
+                        sell_all("KRW-BTC")
+                        bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
+
 
                 if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
 
                     call='Sell'
-                    btc = get_balance("BTC")
-                    #시장가 매도
-                    sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
-                    # 매도 체결여부 확인
-                    uncomp = upbit.get_order("KRW-BTC") # 미체결된 리스트 조회
-                    if len(uncomp) == 0: # 길이가 0이라면, 모든 주문이 체결됐다면                    
-                        d = int(buy_price["KRW-BTC"]) # 매수가
-                        e = int(get_current_price("KRW-BTC")) # 현재가
-                        f = ((( e / d ) - 1 ) * 100 )
-
-                        bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다.                    
-                        buy_price.update({ "KRW-BTC" : 0 }) # 매수가 초기화
-
-                        send_slackMsg("BTC Sell : " + str(sell_result))                    
-                        send_slackMsg("수익률 :" + "%.2f" % (f) + "%") 
+                    sell_all("KRW-BTC")
+                    bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다.                    
                     
                     
                 if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
 
-                    call='Buy'
-                    try:
-                        target_price = get_target_price("KRW-BTC") # 1시간봉 종가 -> 1시간 평균가
-                        current_price = get_current_price("KRW-BTC") # 현재가
-                        if current_price > target_price:
-                            krw = get_balance("KRW")
-                            #현재 잔고의 5% 금액으로 매매 진행
-                            krw = krw * 0.1
-                            if krw > 5000:
-                                #시장가 매수
-                                buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)         
-                                buy_price.update({ "KRW-BTC" : int(current_price) })
-                                send_slackMsg("BTC Buy : " +str(buy_result))                   
-                                
-                                bought_flag = True # True:매수상태, 
-                                
-                    except Exception as e:
-                        send_slackMsg(e)      
+                    call='Buy'                 
+                    buy_all("KRW-BTC")
+                    bought_flag = True # True:매수상태, 
+                    
 
                 send_slackMsg(call)
                 #################################################### 
