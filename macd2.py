@@ -53,7 +53,7 @@ def buy_all(ticker):
                 buy_price.update({ ticker : int(current_price) })
                 send_slackMsg("BTC Buy : " +str(buy_result))       
     except Exception as e:
-        send_slackMsg(e)    
+        send_slackMsg(str(e))    
 
 def sell_all(ticker):  
     try:
@@ -72,7 +72,7 @@ def sell_all(ticker):
             send_slackMsg("수익률 :" + "%.2f" % (f) + "%")  
                 
     except Exception as e:
-        send_slackMsg(e)    
+        send_slackMsg(str(e))    
 
 def send_slackMsg(msg=""):
         response = requests.post(
@@ -191,4 +191,5 @@ if __name__ == '__main__':
                 # df.to_excel(excel_name)    
             time.sleep(10)    
     except Exception as ex:
+        send_slackMsg(str(ex))
         time.sleep(1)
