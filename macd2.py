@@ -111,6 +111,7 @@ if __name__ == '__main__':
 
         while True:
 
+            call='Wait'
             #현재시간 구하기
             now = datetime.datetime.now()
             # 59분마다 수행하다보니 매수타이밍으로 변경된 시점보다 늦게 매수가되어
