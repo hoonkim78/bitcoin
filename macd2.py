@@ -41,17 +41,17 @@ def get_current_price(ticker):
 
 def buy_all(ticker):
     try:
-        target_price = get_target_price(ticker) # 1시간봉 종가 -> 1시간 평균가
+        # target_price = get_target_price(ticker) # 1시간봉 종가 -> 1시간 평균가
         current_price = get_current_price(ticker) # 현재가
-        if current_price > target_price:
-            krw = upbit.get_balance("KRW") * 0.9995
-            #현재 잔고의 5% 금액으로 매매 진행
-            #krw = krw * 0.1
-            if krw > 5000:
-                #시장가 매수
-                buy_result = upbit.buy_market_order(ticker, krw)         
-                buy_price.update({ ticker : int(current_price) })
-                send_slackMsg("BTC Buy : " +str(buy_result))       
+        # if current_price > target_price:
+        krw = upbit.get_balance("KRW") * 0.9995
+        #현재 잔고의 5% 금액으로 매매 진행
+        #krw = krw * 0.1
+        if krw > 5000:
+            #시장가 매수
+            buy_result = upbit.buy_market_order(ticker, krw)         
+            buy_price.update({ ticker : int(current_price) })
+            send_slackMsg("BTC Buy : " +str(buy_result))       
     except Exception as e:
         send_slackMsg(str(e))    
 
@@ -109,14 +109,15 @@ if __name__ == '__main__':
         buy_price = {}
         buy_price.update({ "KRW-BTC" : 0 }) 
 
+        call='Wait'
+
         while True:
 
-            call='Wait'
             #현재시간 구하기
             now = datetime.datetime.now()
             # 59분마다 수행하다보니 매수타이밍으로 변경된 시점보다 늦게 매수가되어
             # 중간에 30분에도 한 번더 수행될 수 있도록 수정
-            if now.minute == 30 or now.minute == 59 :
+            if now.minute >= 30:
 
                 #업비트 30분봉 URL 호출
                 url = "https://api.upbit.com/v1/candles/minutes/60" 
@@ -149,7 +150,10 @@ if __name__ == '__main__':
                 #시그널 지표 계산 (MACD 9일 주가 이동평균치, ※ 1시간봉이기 때문에 현재 9시간 기준)
                 signal = macd.ewm(span=9, adjust=False).mean()
 
-                if bought_flag == True:  # 매수상태이고
+                # if int(buy_price["KRW-BTC"]) > 0 :
+                #     bought_flag = True
+
+                if bought_flag == True and int(buy_price["KRW-BTC"]) > 0:  # 매수상태이고
 
                     d = int(buy_price["KRW-BTC"]) # 매수가
                     e = int(get_current_price("KRW-BTC")) # 현재가
@@ -161,7 +165,7 @@ if __name__ == '__main__':
                     # 1,000,000원 1%이면 10,000원
                     # 10,000,000원 1%이면 100,000원
 
-                    if f <= -2 : # 수익률을 비교해서 -1%이면 무조건 매도
+                    if f <= -2 : # 수익률을 비교해서 -2%이면 무조건 매도
                         call='Sell'
                         sell_all("KRW-BTC")
                         bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
@@ -190,7 +194,8 @@ if __name__ == '__main__':
                 # print(date_string)
                 # excel_name = date_string + "_AutoTradeRecord.xlsx"
                 # df.to_excel(excel_name)    
-            time.sleep(10)    
+            time.sleep(60 * 10)    
+
     except Exception as ex:
         send_slackMsg(str(ex))
         time.sleep(1)
