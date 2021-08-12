@@ -117,58 +117,57 @@ if __name__ == '__main__':
             now = datetime.datetime.now()
             # 59분마다 수행하다보니 매수타이밍으로 변경된 시점보다 늦게 매수가되어
             # 중간에 30분에도 한 번더 수행될 수 있도록 수정
-            if now.minute >= 30:
+            #업비트 30분봉 URL 호출
+            url = "https://api.upbit.com/v1/candles/minutes/60" 
 
-                #업비트 30분봉 URL 호출
-                url = "https://api.upbit.com/v1/candles/minutes/60" 
+            #원화시장 BTC 캔들갯수 MAX:200 / 카운트:100
+            querystring = {"market":"KRW-BTC","count":"200"}
+                
+            #업비트 원화시장 BTC 60분봉 100개 조회 결과 저장
+            response = requests.request("GET", url, params=querystring)
+                
+            #해당 데이터 저장
+            data = response.json()
 
-                #원화시장 BTC 캔들갯수 MAX:200 / 카운트:100
-                querystring = {"market":"KRW-BTC","count":"200"}
-                    
-                #업비트 원화시장 BTC 60분봉 100개 조회 결과 저장
-                response = requests.request("GET", url, params=querystring)
-                    
-                #해당 데이터 저장
-                data = response.json()
+            #해당 데이터로 데이터프레임 생성
+            df = pd.DataFrame(data)                
 
-                #해당 데이터로 데이터프레임 생성
-                df = pd.DataFrame(data)                
+            #데이터 프레임 오름차순 정렬 7/10 ~ 7/14 순으로 오름차순
+            df=df.iloc[::-1]
 
-                #데이터 프레임 오름차순 정렬 7/10 ~ 7/14 순으로 오름차순
-                df=df.iloc[::-1]
+            #종가만 데이터 프레임 저장
+            df=df['trade_price']
 
-                #종가만 데이터 프레임 저장
-                df=df['trade_price']
+            #지수이동평균 구하기 span: 기간 
+            exp1 = df.ewm(span=12, adjust=False).mean()
+            exp2 = df.ewm(span=26, adjust=False).mean()
 
-                #지수이동평균 구하기 span: 기간 
-                exp1 = df.ewm(span=12, adjust=False).mean()
-                exp2 = df.ewm(span=26, adjust=False).mean()
+            #MACD 지표 계산 (단기지수이동평균 - 장기지수이동평균)
+            macd = exp1-exp2
 
-                #MACD 지표 계산 (단기지수이동평균 - 장기지수이동평균)
-                macd = exp1-exp2
+            #시그널 지표 계산 (MACD 9일 주가 이동평균치, ※ 1시간봉이기 때문에 현재 9시간 기준)
+            signal = macd.ewm(span=9, adjust=False).mean()
 
-                #시그널 지표 계산 (MACD 9일 주가 이동평균치, ※ 1시간봉이기 때문에 현재 9시간 기준)
-                signal = macd.ewm(span=9, adjust=False).mean()
+            
+            if bought_flag == True and int(buy_price["KRW-BTC"]) > 0:  # 매수상태이고
 
-                # if int(buy_price["KRW-BTC"]) > 0 :
-                #     bought_flag = True
+                d = int(buy_price["KRW-BTC"]) # 매수가
+                e = int(get_current_price("KRW-BTC")) # 현재가
+                f = ((( e / d ) - 1 ) * 100 )
 
-                if bought_flag == True and int(buy_price["KRW-BTC"]) > 0:  # 매수상태이고
+                # 1000원 1%이면 10원
+                # 10,000원 1%이면 100원
+                # 100,000원 1%이면 1000원
+                # 1,000,000원 1%이면 10,000원
+                # 10,000,000원 1%이면 100,000원
 
-                    d = int(buy_price["KRW-BTC"]) # 매수가
-                    e = int(get_current_price("KRW-BTC")) # 현재가
-                    f = ((( e / d ) - 1 ) * 100 )
+                if f <= -1 : # 수익률을 비교해서 -2%이면 무조건 매도
+                    call='Forced_Sell'
+                    sell_all("KRW-BTC")
+                    bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
 
-                    # 1000원 1%이면 10원
-                    # 10,000원 1%이면 100원
-                    # 100,000원 1%이면 1000원
-                    # 1,000,000원 1%이면 10,000원
-                    # 10,000,000원 1%이면 100,000원
 
-                    if f <= -2 : # 수익률을 비교해서 -2%이면 무조건 매도
-                        call='Sell'
-                        sell_all("KRW-BTC")
-                        bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
+            if now.minute >= 55:
 
 
                 if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
@@ -182,19 +181,12 @@ if __name__ == '__main__':
 
                     call='Buy'                 
                     buy_all("KRW-BTC")
-                    bought_flag = True # True:매수상태, 
+                    bought_flag = True # True:매수상태, i
                     
 
                 send_slackMsg(call)
-                #################################################### 
-                #엑셀로 결과 출력
-                ####################################################
-                # now = datetime.datetime.now()
-                # date_string = now.strftime('%Y%m%d%H%M%S')
-                # print(date_string)
-                # excel_name = date_string + "_AutoTradeRecord.xlsx"
-                # df.to_excel(excel_name)    
-            time.sleep(60 * 10)    
+
+            time.sleep(30)    
 
     except Exception as ex:
         send_slackMsg(str(ex))
