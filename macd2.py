@@ -155,7 +155,12 @@ if __name__ == '__main__':
             else:
                 bought_flag = False
 
-            
+            f = 0.00
+            if int(buy_price["KRW-BTC"]) > 0:
+                d = int(buy_price["KRW-BTC"]) # 매수가
+                e = int(get_current_price("KRW-BTC")) # 현재가
+                f = ((( e / d ) - 1 ) * 100 )       
+
             if bought_flag == True and int(buy_price["KRW-BTC"]) > 0:  # 매수상태이고
 
                 d = int(buy_price["KRW-BTC"]) # 매수가
@@ -168,7 +173,7 @@ if __name__ == '__main__':
                 # 1,000,000원 1%이면 10,000원
                 # 10,000,000원 1%이면 100,000원
 
-                if f <= -0.3 : # 수익률을 비교해서 -2%이면 무조건 매도
+                if f <= -1 : # 수익률을 비교해서 -2%이면 무조건 매도
                     call='Forced_Sell'
                     sell_all("KRW-BTC")
                     # bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
@@ -188,7 +193,7 @@ if __name__ == '__main__':
                     call='Buy'                 
                     buy_all("KRW-BTC")                    
 
-                send_slackMsg(call + "|" + str(bought_flag))
+                send_slackMsg(call + " | 수익률 : " + "%.2f" % (f) + "%")
 
             time.sleep(30)    
 
