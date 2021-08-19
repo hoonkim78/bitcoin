@@ -4,6 +4,8 @@ import time
 import pyupbit 
 import numpy as np
 import datetime
+import smtplib
+from email.mime.text import MIMEText
 
 
 #####################################################
@@ -173,29 +175,28 @@ if __name__ == '__main__':
                 # 1,000,000원 1%이면 10,000원
                 # 10,000,000원 1%이면 100,000원
 
-                if f <= -1 : # 수익률을 비교해서 -2%이면 무조건 매도
-                    call='Forced_Sell'
+                if f >= 0.6 : # 수익률을 비교해서 -2%이면 무조건 매도
+                    call='Forced Sell'
                     sell_all("KRW-BTC")
                     # bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
 
 
-            if now.minute >= 55:
 
+            if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
 
-                if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
+                call='Sell'
+                sell_all("KRW-BTC")               
+                
+                
+            if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
 
-                    call='Sell'
-                    sell_all("KRW-BTC")               
-                    
-                    
-                if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
+                call='Buy'                 
+                buy_all("KRW-BTC")                    
 
-                    call='Buy'                 
-                    buy_all("KRW-BTC")                    
-
+            if now.minute == 1 and now.second == 1 :
                 send_slackMsg(call + " | 수익률 : " + "%.2f" % (f) + "%")
 
-            time.sleep(30)    
+            time.sleep(1)    
 
     except Exception as ex:
         send_slackMsg(str(ex))
