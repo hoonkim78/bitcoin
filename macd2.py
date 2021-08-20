@@ -57,6 +57,28 @@ def buy_all(ticker):
     except Exception as e:
         send_slackMsg(str(e))    
 
+def buy_all2(ticker):
+    try:
+        # target_price = get_target_price(ticker) # 1시간봉 종가 -> 1시간 평균가
+        current_price = get_current_price(ticker) # 현재가
+        # if current_price > target_price:
+        krw = upbit.get_balance("KRW") * 0.9995
+        #현재 잔고의 5% 금액으로 매매 진행
+        #krw = krw * 0.1
+        if krw > 5000:
+            #시장가 매수
+            buy_result = upbit.buy_market_order(ticker, krw)       
+            buy_price.update({ ticker : int(current_price) })  
+            send_slackMsg("BTC Buy : " +str(buy_result))       
+            
+            price_sell = int(current_price * 1.006)
+            btc = upbit.get_balance(ticker) # 비트코인 보유수량 조회
+            sell_result = upbit.sell_limit_order(ticker, price_sell, btc) # 지정가 매도주문     
+            send_slackMsg("BTC limit Sell : " +str(sell_result))      
+            
+    except Exception as e:
+        send_slackMsg(str(e))   
+
 def sell_all(ticker):  
     try:
         btc = upbit.get_balance(ticker)
@@ -76,6 +98,16 @@ def sell_all(ticker):
                 
     except Exception as e:
         send_slackMsg(str(e))    
+
+def limit_sell(ticker, price_open):
+    try:
+        price_open = int(buy_price[ticker]) # 매수가
+        price_sell = int(price_open * 1.006)
+        btc = upbit.get_balance(ticker) # 비트코인 보유수량 조회
+        ret = upbit.sell_limit_order(ticker, price_sell, btc) # 지정가 매도주문       
+    except Exception as e:
+        send_slackMsg(str(e))    
+
 
 def send_slackMsg(msg=""):
         response = requests.post(
@@ -163,37 +195,37 @@ if __name__ == '__main__':
                 e = int(get_current_price("KRW-BTC")) # 현재가
                 f = ((( e / d ) - 1 ) * 100 )       
 
-            if bought_flag == True and int(buy_price["KRW-BTC"]) > 0:  # 매수상태이고
+            # if bought_flag == True and int(buy_price["KRW-BTC"]) > 0:  # 매수상태이고
 
-                d = int(buy_price["KRW-BTC"]) # 매수가
-                e = int(get_current_price("KRW-BTC")) # 현재가
-                f = ((( e / d ) - 1 ) * 100 )
+            #     d = int(buy_price["KRW-BTC"]) # 매수가
+            #     e = int(get_current_price("KRW-BTC")) # 현재가
+            #     f = ((( e / d ) - 1 ) * 100 )
 
-                # 1000원 1%이면 10원
-                # 10,000원 1%이면 100원
-                # 100,000원 1%이면 1000원
-                # 1,000,000원 1%이면 10,000원
-                # 10,000,000원 1%이면 100,000원
+            #     # 1000원 1%이면 10원
+            #     # 10,000원 1%이면 100원
+            #     # 100,000원 1%이면 1000원
+            #     # 1,000,000원 1%이면 10,000원
+            #     # 10,000,000원 1%이면 100,000원
 
-                if f >= 0.6 : # 수익률을 비교해서 -2%이면 무조건 매도
-                    call='Forced Sell'
-                    sell_all("KRW-BTC")
-                    # bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
+            #     if f >= 0.6 : # 수익률을 비교해서 -2%이면 무조건 매도
+            #         call='Forced Sell'
+            #         sell_all("KRW-BTC")
+            #         # bought_flag = False # 매도가 완료되면 다음주문이 가능하도록 false 처리한다. 
 
 
 
-            if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
+            # if signal[0] > macd[0] and macd[1] > signal[1] and bought_flag == True: # 매수상태이면
 
-                call='Sell'
-                sell_all("KRW-BTC")               
+            #     call='Sell'
+            #     sell_all("KRW-BTC")               
                 
                 
             if macd[0] > signal[0] and signal[1] > macd[1] and bought_flag == False:
 
                 call='Buy'                 
-                buy_all("KRW-BTC")                    
+                buy_all2("KRW-BTC")                    
 
-            if now.minute == 1 and now.second == 1 :
+            if now.second == 1 :
                 send_slackMsg(call + " | 수익률 : " + "%.2f" % (f) + "%")
 
             time.sleep(1)    
