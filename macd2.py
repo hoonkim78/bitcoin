@@ -69,9 +69,13 @@ def buy_all2(ticker):
             #시장가 매수
             buy_result = upbit.buy_market_order(ticker, krw)       
             buy_price.update({ ticker : int(current_price) })  
-            send_slackMsg("BTC Buy : " +str(buy_result))       
+            send_slackMsg("BTC Buy : " +str(buy_result))   
+            time.sleep(1)    
             
             price_sell = int(current_price * 1.006)
+            price_sell_edit = str(price_sell)
+            price_sell_edit = price_sell_edit[0:5] + "000"
+            price_sell = int(price_sell_edit)
             btc = upbit.get_balance(ticker) # 비트코인 보유수량 조회
             sell_result = upbit.sell_limit_order(ticker, price_sell, btc) # 지정가 매도주문     
             send_slackMsg("BTC limit Sell : " +str(sell_result))      
@@ -226,7 +230,8 @@ if __name__ == '__main__':
                 buy_all2("KRW-BTC")                    
 
             if now.second == 1 :
-                send_slackMsg(call + " | 수익률 : " + "%.2f" % (f) + "%")
+                if int(buy_price["KRW-BTC"]) > 0:
+                    send_slackMsg(call + " | 수익률 : " + "%.2f" % (f) + "%")
 
             time.sleep(1)    
 
